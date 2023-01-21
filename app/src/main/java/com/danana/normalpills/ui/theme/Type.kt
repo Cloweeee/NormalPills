@@ -1,4 +1,4 @@
-package com.danana.adhdtracker.ui.theme
+package com.danana.normalpills.ui.theme
 
 import androidx.compose.material3.Typography
 import androidx.compose.ui.text.TextStyle

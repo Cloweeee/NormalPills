@@ -1,4 +1,4 @@
-package com.danana.adhdtracker
+package com.danana.normalpills
 
 import org.junit.Test
 

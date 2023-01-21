@@ -12,9 +12,8 @@
         android:theme="@style/Theme.ADHDTracker"
         tools:targetApi="31" >
         <activity
-            android:name=".MainActivity"
+            android:name="com.danana.normalpills.MainActivity"
             android:exported="true"
-            android:label="@string/app_name"
             android:theme="@style/Theme.ADHDTracker" >
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />

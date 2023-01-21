@@ -1,4 +1,4 @@
-package com.danana.adhdtracker
+package com.danana.normalpills
 
 import android.content.Context
 import android.icu.text.SimpleDateFormat
@@ -28,7 +28,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.constraintlayout.compose.ConstraintLayout
-import com.danana.adhdtracker.ui.theme.ADHDTrackerTheme
+import com.danana.normalpills.ui.theme.NormalPillsTheme
 import org.json.JSONArray
 import org.json.JSONObject
 import java.util.*
@@ -104,7 +104,7 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
-            ADHDTrackerTheme {
+            NormalPillsTheme {
                 val sdf = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault())
                 val sharedPref = this.getPreferences(Context.MODE_PRIVATE)
 

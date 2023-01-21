@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">ADHDTracker</string>
+    <string name="app_name">Normal Pills</string>
     <string name="dates_array">dates_array</string>
     <string name="dates_array_default">[]</string>
     <string name="duration">duration</string>
