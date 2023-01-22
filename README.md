@@ -20,6 +20,6 @@ This is the first time I have developed an Android app, so the code is messy and
 - Custom duration
 - Optional confetti when starting timer
 - ...
-###🧱 Credits
+### 🧱 Credits
 This app is heavily influenced/inspired by [Seal](https://github.com/JunkFood02/Seal), another Material You app (that I personally highly recommend).
 I read through a lot of their code to learn about how they made their UI, as well as copying most elements used in the Settings.
