@@ -49,9 +49,6 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.alorma.compose.settings.ui.SettingsMenuLink
-import com.danana.normalpills.material3components.*
-import com.danana.normalpills.material3components.DrawerState
-import com.danana.normalpills.material3components.DrawerValue
 import com.danana.normalpills.ui.theme.NormalPillsTheme
 import com.google.android.material.bottomsheet.BottomSheetDragHandleView
 import com.tencent.mmkv.MMKV
@@ -208,194 +205,161 @@ class MainActivity : ComponentActivity() {
                 dateString.value = "never"
             } else dateString.value = DateUtils.getRelativeTimeSpanString(lastDate.value).toString() // Otherwise, display time since last intake
         }
-            /*BottomSheetScaffold(
-                sheetElevation = 8.dp,
-                sheetContent = {
-                    Surface(
-                        modifier = Modifier
-                            .fillMaxSize(),
-                        color = MaterialTheme.colorScheme.surfaceColorAtElevation(8.dp),
-                    ) {
-                        Column(modifier = Modifier.fillMaxSize()) {
-                            Text(
-                                text = "HISTORY",
-                                textAlign = TextAlign.Center,
-                                style = MaterialTheme.typography.titleLarge,
-                                modifier = Modifier
+        ConstraintLayout(modifier = Modifier.fillMaxSize()) {
+            val (row, card, settings) = createRefs()
+
+            IconButton(
+                onClick = { navController.navigate("settings") },
+                modifier = Modifier
+                    .constrainAs(ref = settings) {
+                        top.linkTo(parent.top)
+                    }
+                    .padding(all = 12.dp)
+            ) {
+                Icon(Icons.Filled.Settings, "Settings")
+            }
+
+            Row(modifier = Modifier // Row containing selectable chips
+                .fillMaxWidth()
+                .padding(all = 24.dp)
+                .constrainAs(ref = row) {
+                    bottom.linkTo(card.top) // Put the Row of chips right above the main Card
+                }
+                .horizontalScroll(rememberScrollState()),
+            ) {
+                // All selectable timer-lengths
+                TimeChip(timeString = "20 seconds(test)", timeMs = 20 * 1000, timeToUse)
+                TimeChip(timeString = "1 hour", timeMs = 1 * 1000 * 60 * 60, timeToUse)
+                TimeChip(timeString = "2 hours", timeMs = 2 * 1000 * 60 * 60, timeToUse)
+                TimeChip(timeString = "4 hours", timeMs = 4 * 1000 * 60 * 60, timeToUse)
+                TimeChip(timeString = "8 hours", timeMs = 8 * 1000 * 60 * 60, timeToUse)
+                //TODO: Add a custom length option in the future.
+            }
+            ElevatedCard( // Create the main card!
+                modifier = Modifier
+                    .size(width = 300.dp, height = 400.dp)
+                    .fillMaxSize()
+                    .constrainAs(ref = card) {
+                        centerTo(parent)
+                    }
+            ) {
+                CardDefaults.elevatedCardElevation(8.dp)
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(all = 16.dp),
+                    verticalArrangement = Arrangement.SpaceEvenly
+                ) {
+                    Box(modifier = Modifier // Box containing (optional) image, timer display and a line
+                        .size(200.dp)
+                        .align(Alignment.CenterHorizontally)
+                        .fillMaxSize()) {
+                        val color = MaterialTheme.colorScheme.primary
+                        val lineColor = MaterialTheme.colorScheme.secondary
+                        val circleColor = MaterialTheme.colorScheme.secondaryContainer
+
+                        Canvas(modifier = Modifier.fillMaxSize()) {
+                            drawCircle(
+                                color = circleColor
+                            )
+                            drawArc(
+                                color = lineColor,
+                                140f,
+                                260f,
+                                false,
+                                style = Stroke(
+                                    2.dp.toPx(),
+                                    cap = StrokeCap.Round
+                                )
+                            )
+                            if (running.value) {
+                                drawArc(
+                                    color = color,
+                                    140f,
+                                    sweepProgress.value * 260f,
+                                    false,
+                                    style = Stroke(
+                                        12.dp.toPx(),
+                                        cap = StrokeCap.Round
+                                    )
+                                )
+                            }
+                        }
+
+                        // Only display autism creatures when it is enabled in the settings
+                        if(Preferences.creaturesEnabled()) {
+                            val image = remember { mutableStateOf(0) }
+
+                            if (running.value) image.value = R.drawable.autism_creature // If the timer is running, display autism creature!
+                            else image.value = R.drawable.adhd_creature // If the timer isn't running, display ADHD creature
+                            Image(
+                                painterResource(id = image.value),
+                                contentDescription = "",
+                                contentScale = ContentScale.Fit,
+                                modifier = (Modifier
+                                    .size(150.dp)
+                                    .align(Alignment.Center)
                                     .fillMaxSize()
-                                    .padding(all = 12.dp)
+                                        )
+                            )
+                        } else {
+                            // If autism creatures are disabled, display checkmarks instead
+                            val mainIcon: MutableState<ImageVector> = remember { mutableStateOf(Icons.Rounded.Cancel) }
+                            val contentDescription = remember { mutableStateOf("") }
+
+                            if(running.value) {
+                                mainIcon.value = Icons.Rounded.CheckCircle
+                                contentDescription.value = "Checkmark indicating a running timer"
+                            } else {
+                                mainIcon.value = Icons.Rounded.Cancel
+                                contentDescription.value = "Cancel icon indicating a non-running timer"
+                            }
+                            Icon(
+                                imageVector = mainIcon.value,
+                                contentDescription = "Checkmark",
+                                modifier = (Modifier
+                                    .size(150.dp)
+                                    .align(Alignment.Center)
+                                    .fillMaxSize()
+                                        )
                             )
                         }
                     }
-                },
-                /*topBar = { MediumTopAppBar(
-                    title = {Text("test")},
-                    scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior()
-                )},*/
-                scaffoldState = BottomSheetScaffoldState(
-                    bottomSheetState = BottomSheetState(BottomSheetValue.Collapsed),
-                    drawerState = DrawerState(DrawerValue.Open),
-                    snackbarHostState = SnackbarHostState()
-                )
-            )
-            {*/
 
-                ConstraintLayout(modifier = Modifier.fillMaxSize()) {
-                    val (row, card, settings) = createRefs()
 
-                    IconButton(
-                        onClick = { navController.navigate("settings") },
-                        modifier = Modifier
-                            .constrainAs(ref = settings) {
-                                top.linkTo(parent.top)
-                            }
-                            .padding(all = 12.dp)
+                    Column(verticalArrangement = Arrangement.Center, modifier = Modifier
+                        .height(104.dp)
                     ) {
-                        Icon(Icons.Filled.Settings, "Settings")
-                    }
+                        DateText(dateString = dateString, running) // Display either time since last intake, or current timer
 
-                    Row(modifier = Modifier // Row containing selectable chips
-                        .fillMaxWidth()
-                        .padding(all = 24.dp)
-                        .constrainAs(ref = row) {
-                            bottom.linkTo(card.top) // Put the Row of chips right above the main Card
-                        }
-                        .horizontalScroll(rememberScrollState()),
-                    ) {
-                        // All selectable timer-lengths
-                        TimeChip(timeString = "20 seconds(test)", timeMs = 20 * 1000, timeToUse)
-                        TimeChip(timeString = "1 hour", timeMs = 1 * 1000 * 60 * 60, timeToUse)
-                        TimeChip(timeString = "2 hours", timeMs = 2 * 1000 * 60 * 60, timeToUse)
-                        TimeChip(timeString = "4 hours", timeMs = 4 * 1000 * 60 * 60, timeToUse)
-                        TimeChip(timeString = "8 hours", timeMs = 8 * 1000 * 60 * 60, timeToUse)
-                        //TODO: Add a custom length option in the future.
-                    }
-                    ElevatedCard( // Create the main card!
-                        modifier = Modifier
-                            .size(width = 300.dp, height = 400.dp)
-                            .fillMaxSize()
-                            .constrainAs(ref = card) {
-                                centerTo(parent)
-                            }
-                    ) {
-                        CardDefaults.elevatedCardElevation(8.dp)
-                        Column(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .padding(all = 16.dp),
-                            verticalArrangement = Arrangement.SpaceEvenly
-                        ) {
-                            Box(modifier = Modifier // Box containing (optional) image, timer display and a line
-                                .size(200.dp)
-                                .align(Alignment.CenterHorizontally)
-                                .fillMaxSize()) {
-                                val color = MaterialTheme.colorScheme.primary
-                                val lineColor = MaterialTheme.colorScheme.secondary
-                                val circleColor = MaterialTheme.colorScheme.secondaryContainer
-
-                                Canvas(modifier = Modifier.fillMaxSize()) {
-                                    drawCircle(
-                                        color = circleColor
+                        Button( // Button used to input intakes
+                            modifier = Modifier.align(Alignment.CenterHorizontally),
+                            enabled = (!running.value && timeToUse.value != 0L),
+                            onClick = {
+                                lastDate.value = Date().time
+                                countDownTimer.start()
+                                println(countDownTimer.toString())
+                                showKonfetti.value = true;
+                                // Write new date
+                                with(sharedPref.edit()) { // Save current time/date, as well as the time that was selected
+                                    val date = JSONObject()
+                                    date.put("date", sdf.format(Date()))
+                                    date.put("selectedTime", timeToUse.value)
+                                    dates.put(date)
+                                    putString(
+                                        getString(R.string.dates_array),
+                                        dates.toString()
                                     )
-                                    drawArc(
-                                        color = lineColor,
-                                        140f,
-                                        260f,
-                                        false,
-                                        style = Stroke(
-                                            2.dp.toPx(),
-                                            cap = StrokeCap.Round
-                                        )
-                                    )
-                                    if (running.value) {
-                                        drawArc(
-                                            color = color,
-                                            140f,
-                                            sweepProgress.value * 260f,
-                                            false,
-                                            style = Stroke(
-                                                12.dp.toPx(),
-                                                cap = StrokeCap.Round
-                                            )
-                                        )
-                                    }
+                                    apply()
                                 }
-
-                                // Only display autism creatures when it is enabled in the settings
-                                if(Preferences.creaturesEnabled()) {
-                                    val image = remember { mutableStateOf(0) }
-
-                                    if (running.value) image.value = R.drawable.autism_creature // If the timer is running, display autism creature!
-                                    else image.value = R.drawable.adhd_creature // If the timer isn't running, display ADHD creature
-                                    Image(
-                                        painterResource(id = image.value),
-                                        contentDescription = "",
-                                        contentScale = ContentScale.Fit,
-                                        modifier = (Modifier
-                                            .size(150.dp)
-                                            .align(Alignment.Center)
-                                            .fillMaxSize()
-                                                )
-                                    )
-                                } else {
-                                    // If autism creatures are disabled, display checkmarks instead
-                                    val mainIcon: MutableState<ImageVector> = remember { mutableStateOf(Icons.Rounded.Cancel) }
-                                    val contentDescription = remember { mutableStateOf("") }
-
-                                    if(running.value) {
-                                        mainIcon.value = Icons.Rounded.CheckCircle
-                                        contentDescription.value = "Checkmark indicating a running timer"
-                                    } else {
-                                        mainIcon.value = Icons.Rounded.Cancel
-                                        contentDescription.value = "Cancel icon indicating a non-running timer"
-                                    }
-                                    Icon(
-                                        imageVector = mainIcon.value,
-                                        contentDescription = "Checkmark",
-                                        modifier = (Modifier
-                                            .size(150.dp)
-                                            .align(Alignment.Center)
-                                            .fillMaxSize()
-                                                )
-                                    )
-                                }
-                            }
-
-
-                            Column(verticalArrangement = Arrangement.Center, modifier = Modifier
-                                .height(104.dp)
-                            ) {
-                                DateText(dateString = dateString, running) // Display either time since last intake, or current timer
-
-                                Button( // Button used to input intakes
-                                    modifier = Modifier.align(Alignment.CenterHorizontally),
-                                    enabled = (!running.value && timeToUse.value != 0L),
-                                    onClick = {
-                                        lastDate.value = Date().time
-                                        countDownTimer.start()
-                                        println(countDownTimer.toString())
-                                        showKonfetti.value = true;
-                                        // Write new date
-                                        with(sharedPref.edit()) { // Save current time/date, as well as the time that was selected
-                                            val date = JSONObject()
-                                            date.put("date", sdf.format(Date()))
-                                            date.put("selectedTime", timeToUse.value)
-                                            dates.put(date)
-                                            putString(
-                                                getString(R.string.dates_array),
-                                                dates.toString()
-                                            )
-                                            apply()
-                                        }
-                                    }) {
-                                    Text(text = "Taking some normal pills") // Button text TODO: Create setting to disable 'fun' stuff
-                                }
-                            }
+                            }) {
+                            Text(text = "Taking some normal pills") // Button text TODO: Create setting to disable 'fun' stuff
                         }
                     }
                 }
             }
-        //}
+        }
+    }
 
     @Composable
     fun Settings(navController: NavController) {
