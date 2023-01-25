@@ -64,8 +64,6 @@ import org.json.JSONObject
 import java.util.*
 import java.util.concurrent.TimeUnit
 
-var resumed = false
-
 @OptIn(ExperimentalMaterial3Api::class)
 class MainActivity : ComponentActivity() {
     val sdf = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault())
@@ -228,9 +226,8 @@ class MainActivity : ComponentActivity() {
         val sweepProgress: MutableState<Float> = remember { mutableStateOf(1f) } // Float remembering the current completion of the timer
         val running = remember { mutableStateOf(false) } // Boolean used to remember whether a timer is running
 
-        if((timeSinceLast.value < lastSelected.value) && !running.value && !resumed) {
+        if((timeSinceLast.value < lastSelected.value) && !running.value) {
             startTimer(false, lastSelected.value - timeSinceLast.value, running, dateString, sweepProgress, lastSelected, showKonfetti)
-            resumed = true
         }
 
         if (!running.value) { // If the timer isn't running, do the following
