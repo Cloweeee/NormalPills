@@ -4,11 +4,13 @@ import com.tencent.mmkv.MMKV
 
 const val CREATURES = "creatures"
 const val CONFETTI = "confetti"
+const val NOTIFICATIONS = "confetti"
 
 private val BooleanPreferenceDefaults =
     mapOf(
         CREATURES to false,
         CONFETTI to true,
+        NOTIFICATIONS to false
     )
 
 object Preferences {
@@ -23,4 +25,5 @@ object Preferences {
 
     fun creaturesEnabled() = CREATURES.getBoolean()
     fun confettiEnabled() = CONFETTI.getBoolean()
+    fun notificationsEnabled() = NOTIFICATIONS.getBoolean()
 }
