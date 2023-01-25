@@ -10,15 +10,14 @@ This is the first time I have developed an Android app, so the code is messy and
 - See time left on current dose, as well as a progress bar
 - See time since last intake (if there is no current timer)
 - Timers will continue, even if the app was closed
+- Get notified when your timer is done
+- Confetti!
 - [Material Design 3](https://m3.material.io/) style UI, with dynamic color theme
 ### Incoming
 - Display time since current intake, when timer is running
-- Setting for disabling 'tbh' and 'btw' creatures
-- Setting for disabling other fun cosmetics
-- Notification when timer is done
+- Setting for disabling fun text
 - History tab showing previous intakes
 - Custom duration
-- Optional confetti when starting timer
 - ...
 
 ## 🧱 Credits
