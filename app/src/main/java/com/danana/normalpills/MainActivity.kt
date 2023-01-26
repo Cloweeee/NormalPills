@@ -15,6 +15,8 @@ import android.text.format.DateUtils
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.animation.*
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.horizontalScroll
@@ -28,6 +30,8 @@ import androidx.compose.material.icons.rounded.CheckCircle
 import androidx.compose.material.icons.rounded.Error
 import androidx.compose.material.icons.rounded.Warning
 import androidx.compose.material3.*
+import androidx.compose.material3.CardDefaults.elevatedCardElevation
+import androidx.compose.material3.CardElevation
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -46,14 +50,16 @@ import androidx.constraintlayout.compose.ConstraintLayout
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.navigation.NavController
-import androidx.navigation.compose.NavHost
-import androidx.navigation.compose.composable
-import androidx.navigation.compose.rememberNavController
 import com.alorma.compose.settings.ui.SettingsSwitch
 import com.danana.normalpills.ui.theme.NormalPillsTheme
+import com.google.accompanist.navigation.animation.AnimatedComposeNavigator
+import com.google.accompanist.navigation.animation.AnimatedNavHost
+import com.google.accompanist.navigation.animation.composable
+import com.google.accompanist.navigation.animation.rememberAnimatedNavController
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.rememberPermissionState
 import com.notificationman.library.NotificationMan
+import com.notificationman.library.config.NotificationManChannelConfig
 import com.notificationman.library.model.NotificationTypes
 import com.tencent.mmkv.MMKV
 import nl.dionsegijn.konfetti.compose.KonfettiView
@@ -77,13 +83,14 @@ class MainActivity : ComponentActivity() {
 
     fun startTimer(notifBool: Boolean, timeToUse: Long, running: MutableState<Boolean>, dateString: MutableState<String>, sweepProgress: MutableState<Float>, lastSelected: MutableState<Long>, showKonfetti: MutableState<Boolean>) {
 
+        if(running.value) return
+        running.value = true
         // Ticking must happen at least every second
         var interval = timeToUse/7200
         if(interval > 1*1000) interval = 1000
 
         val countDownTimer = object : CountDownTimer(timeToUse, interval) { // Create a timer
             override fun onTick(millisRemaining: Long) {
-                running.value = true
                 dateString.value = DateUtils.formatElapsedTime(StringBuilder("HH:MM:SS"), millisRemaining / 1000) // Display current time inside of the DateText composable
                 sweepProgress.value = millisRemaining.toFloat()/lastSelected.value.toFloat()
             }
@@ -94,12 +101,13 @@ class MainActivity : ComponentActivity() {
             }
         }
 
-        if(notifBool) {
+        if(notifBool && Preferences.notificationsEnabled()) {
             NotificationMan
                 .Builder(this@MainActivity, "com.danana.normalpills.MainActivity")
                 .setTitle(getString(R.string.notif_title))
                 .setDescription("dose was taken on ${SimpleDateFormat("HH:mm:ss").format(Date().time - lastSelected.value)}.")
                 .setTimeInterval(timeToUse/1000)
+                .setNotificationChannelConfig(NotificationManChannelConfig(channelId = getString(R.string.done_notifs), channelName = getString(R.string.done_notifs), showBadge = true))
                 .fire()
         }
         countDownTimer.start()
@@ -170,6 +178,9 @@ class MainActivity : ComponentActivity() {
 
     @Composable
     fun HomeScreen(navController: NavController) {
+
+        val running = remember { mutableStateOf(false) } // Boolean used to remember whether a timer is running
+
         val sharedPref = this.getPreferences(MODE_PRIVATE)
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -202,12 +213,8 @@ class MainActivity : ComponentActivity() {
 
         val dateString = remember { mutableStateOf("") } // String used in the main text box
 
-        val timeToUse: MutableState<Long> = remember { // Load in the user's old selection, if non-existent, use 0
-            mutableStateOf(sharedPref.getLong(getString(R.string.duration), 0))
-        }
-
         val selectedTime: MutableState<Long> = remember { // Load in the user's old selection, if non-existent, use 0
-            mutableStateOf(timeToUse.value)
+            mutableStateOf(sharedPref.getLong(getString(R.string.duration), 0))
         }
 
         val dates = getDates()
@@ -221,13 +228,10 @@ class MainActivity : ComponentActivity() {
             lastSelected.value = recentDateObject.get("selectedTime").toString().toLong()
         }
 
-        val timeSinceLast = remember { mutableStateOf( Date().time.minus(lastDate.value) ) } // Long remembering how long ago the last intake was
-
         val sweepProgress: MutableState<Float> = remember { mutableStateOf(1f) } // Float remembering the current completion of the timer
-        val running = remember { mutableStateOf(false) } // Boolean used to remember whether a timer is running
 
-        if((timeSinceLast.value < lastSelected.value) && !running.value) {
-            startTimer(false, lastSelected.value - timeSinceLast.value, running, dateString, sweepProgress, lastSelected, showKonfetti)
+        if(((Date().time.minus(lastDate.value) ) < lastSelected.value) && !running.value) {
+            startTimer(false, lastSelected.value - (Date().time.minus(lastDate.value)), running, dateString, sweepProgress, lastSelected, showKonfetti)
         }
 
         if (!running.value) { // If the timer isn't running, do the following
@@ -259,7 +263,7 @@ class MainActivity : ComponentActivity() {
                     .horizontalScroll(rememberScrollState()),
             ) {
                 // All selectable timer-lengths
-                //TimeChip(timeString = "20 seconds(test)", timeMs = 20 * 1000, selectedTime)
+                TimeChip(timeString = "TEST 1m", timeMs = 1 * 60 * 1000, selectedTime)
                 TimeChip(timeString = "1 hour", timeMs = 1 * 1000 * 60 * 60, selectedTime)
                 TimeChip(timeString = "2 hours", timeMs = 2 * 1000 * 60 * 60, selectedTime)
                 TimeChip(timeString = "4 hours", timeMs = 4 * 1000 * 60 * 60, selectedTime)
@@ -267,14 +271,14 @@ class MainActivity : ComponentActivity() {
                 //TODO: Add a custom length option in the future.
             }
             ElevatedCard( // Create the main card!
-                modifier = Modifier
+                Modifier
                     .size(width = 300.dp, height = 450.dp)
                     .fillMaxSize()
                     .constrainAs(ref = card) {
                         centerTo(parent)
-                    }
+                    },
+                elevation = elevatedCardElevation(1.dp)
             ) {
-                CardDefaults.elevatedCardElevation(8.dp)
                 Column(
                     modifier = Modifier
                         .fillMaxSize()
@@ -360,7 +364,7 @@ class MainActivity : ComponentActivity() {
 
                     Column(verticalArrangement = Arrangement.Center, /*modifier = Modifier.height(104.dp)*/) {
                         DateText(dateString = dateString, running) // Display either time since last intake, or current timer
-
+                        //TODO: Add text displaying intake time
                         Button( // Button used to input intakes
                             modifier = Modifier.align(Alignment.CenterHorizontally),
                             enabled = (!running.value && selectedTime.value != 0L),
@@ -540,6 +544,7 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    @OptIn(ExperimentalAnimationApi::class)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         MMKV.initialize(this)
@@ -550,16 +555,45 @@ class MainActivity : ComponentActivity() {
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
                 ) {
-                    val navController = rememberNavController()
-                    NavHost(
+                    val navController = rememberAnimatedNavController()
+                    AnimatedNavHost(
                         navController = navController,
                         startDestination = "home"
                     ) {
-                        composable(route = "home") { HomeScreen(navController) }
-                        composable(route = "settings") { Settings(navController) }
-                        composable(route = "funsettings") { FunSetttings(navController) }
-                        composable(route = "about") { AboutInfo(navController) }
-                        composable(route = "generalsettings") { GeneralSettings(navController)}
+                        composable(
+                            route = "home",
+                            exitTransition = { fadeOut(animationSpec = tween(90)) }
+                        ) {
+                            HomeScreen(navController)
+                        }
+                        composable(
+                            route = "settings",
+                            enterTransition =  { fadeIn(animationSpec = tween(220, delayMillis = 90)) + scaleIn(initialScale = 0.92f, animationSpec = tween(220, delayMillis = 90)) },
+                            exitTransition = { fadeOut(animationSpec = tween(90)) }
+                        ) {
+                            Settings(navController)
+                        }
+                        composable(
+                            route = "funsettings",
+                            enterTransition =  { fadeIn(animationSpec = tween(220, delayMillis = 90)) + scaleIn(initialScale = 0.92f, animationSpec = tween(220, delayMillis = 90)) },
+                            exitTransition = { fadeOut(animationSpec = tween(90)) }
+                        ) {
+                            FunSetttings(navController)
+                        }
+                        composable(
+                            route = "about",
+                            enterTransition =  { fadeIn(animationSpec = tween(220, delayMillis = 90)) + scaleIn(initialScale = 0.92f, animationSpec = tween(220, delayMillis = 90)) },
+                            exitTransition = { fadeOut(animationSpec = tween(90)) }
+                        ) {
+                            AboutInfo(navController)
+                        }
+                        composable(
+                            route = "generalsettings",
+                            enterTransition =  { fadeIn(animationSpec = tween(220, delayMillis = 90)) + scaleIn(initialScale = 0.92f, animationSpec = tween(220, delayMillis = 90)) },
+                            exitTransition = { fadeOut(animationSpec = tween(90)) }
+                        ) {
+                            GeneralSettings(navController)
+                        }
                     }
                 }
             }
