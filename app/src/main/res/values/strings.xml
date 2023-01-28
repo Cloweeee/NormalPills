@@ -6,4 +6,5 @@
     <string name="done_notifs">Finished timer</string>
     <string name="done_notifs_description">Notifies you when your dose runs out</string>
     <string name="notif_title">Your dose is no longer in effect!</string>
+    <string name="timerFinished">timerFinished</string>
 </resources>

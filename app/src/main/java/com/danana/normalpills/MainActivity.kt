@@ -41,6 +41,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -60,6 +61,7 @@ import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.rememberPermissionState
 import com.notificationman.library.NotificationMan
 import com.notificationman.library.config.NotificationManChannelConfig
+import com.notificationman.library.model.NotificationImportanceLevel
 import com.notificationman.library.model.NotificationTypes
 import com.tencent.mmkv.MMKV
 import nl.dionsegijn.konfetti.compose.KonfettiView
@@ -81,7 +83,7 @@ class MainActivity : ComponentActivity() {
         return JSONArray(sharedPref.getString(getString(R.string.dates_array), defaultValue))
     }
 
-    fun startTimer(notifBool: Boolean, timeToUse: Long, running: MutableState<Boolean>, dateString: MutableState<String>, sweepProgress: MutableState<Float>, lastSelected: MutableState<Long>, showKonfetti: MutableState<Boolean>) {
+    fun startTimer(notifBool: Boolean, timeToUse: Long, running: MutableState<Boolean>, dateString: MutableState<String>, sweepProgress: MutableState<Float>, lastSelected: MutableState<Long>, showKonfetti: MutableState<Boolean>, lastDate: MutableState<Long>) {
 
         if(running.value) return
         running.value = true
@@ -105,9 +107,9 @@ class MainActivity : ComponentActivity() {
             NotificationMan
                 .Builder(this@MainActivity, "com.danana.normalpills.MainActivity")
                 .setTitle(getString(R.string.notif_title))
-                .setDescription("dose was taken on ${SimpleDateFormat("HH:mm:ss").format(Date().time - lastSelected.value)}.")
+                .setDescription("dose was taken on ${SimpleDateFormat("HH:mm:ss").format(lastDate.value)}.")
                 .setTimeInterval(timeToUse/1000)
-                .setNotificationChannelConfig(NotificationManChannelConfig(channelId = getString(R.string.done_notifs), channelName = getString(R.string.done_notifs), showBadge = true))
+                //.setNotificationChannelConfig(NotificationManChannelConfig("test", "test", importanceLevel = NotificationImportanceLevel.DEFAULT, true))
                 .fire()
         }
         countDownTimer.start()
@@ -184,12 +186,9 @@ class MainActivity : ComponentActivity() {
         val sharedPref = this.getPreferences(MODE_PRIVATE)
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val name = getString(R.string.done_notifs)
             val descriptionText = getString(R.string.done_notifs_description)
             val importance = NotificationManager.IMPORTANCE_DEFAULT
-            val channel = NotificationChannel(getString(R.string.done_notifs), name, importance).apply {
-                description = descriptionText
-            }
+            val channel = NotificationChannel("test", "test", importance).apply {}
             // Register the channel with the system
             val notificationManager: NotificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
             notificationManager.createNotificationChannel(channel)
@@ -231,7 +230,7 @@ class MainActivity : ComponentActivity() {
         val sweepProgress: MutableState<Float> = remember { mutableStateOf(1f) } // Float remembering the current completion of the timer
 
         if(((Date().time.minus(lastDate.value) ) < lastSelected.value) && !running.value) {
-            startTimer(false, lastSelected.value - (Date().time.minus(lastDate.value)), running, dateString, sweepProgress, lastSelected, showKonfetti)
+            startTimer(false, lastSelected.value - (Date().time.minus(lastDate.value)), running, dateString, sweepProgress, lastSelected, showKonfetti, lastDate)
         }
 
         if (!running.value) { // If the timer isn't running, do the following
@@ -263,7 +262,7 @@ class MainActivity : ComponentActivity() {
                     .horizontalScroll(rememberScrollState()),
             ) {
                 // All selectable timer-lengths
-                TimeChip(timeString = "TEST 1m", timeMs = 1 * 60 * 1000, selectedTime)
+                TimeChip(timeString = "TEST 20s", timeMs = 20 * 1000, selectedTime)
                 TimeChip(timeString = "1 hour", timeMs = 1 * 1000 * 60 * 60, selectedTime)
                 TimeChip(timeString = "2 hours", timeMs = 2 * 1000 * 60 * 60, selectedTime)
                 TimeChip(timeString = "4 hours", timeMs = 4 * 1000 * 60 * 60, selectedTime)
@@ -370,7 +369,7 @@ class MainActivity : ComponentActivity() {
                             enabled = (!running.value && selectedTime.value != 0L),
                             onClick = {
                                 lastDate.value = Date().time
-                                startTimer(true, selectedTime.value, running, dateString, sweepProgress, lastSelected, showKonfetti)
+                                startTimer(true, selectedTime.value, running, dateString, sweepProgress, lastSelected, showKonfetti, lastDate)
                                 showKonfetti.value = true;
 
                                 // Write new date
