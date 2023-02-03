@@ -1,0 +1,2 @@
+- Added Notifications
+- Fixed other flaws/bugs

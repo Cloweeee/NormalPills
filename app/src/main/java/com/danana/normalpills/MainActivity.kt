@@ -185,15 +185,6 @@ class MainActivity : ComponentActivity() {
 
         val sharedPref = this.getPreferences(MODE_PRIVATE)
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val descriptionText = getString(R.string.done_notifs_description)
-            val importance = NotificationManager.IMPORTANCE_DEFAULT
-            val channel = NotificationChannel("test", "test", importance).apply {}
-            // Register the channel with the system
-            val notificationManager: NotificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-            notificationManager.createNotificationChannel(channel)
-        }
-
         val notificationManager: NotificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
 
 
@@ -262,7 +253,7 @@ class MainActivity : ComponentActivity() {
                     .horizontalScroll(rememberScrollState()),
             ) {
                 // All selectable timer-lengths
-                TimeChip(timeString = "TEST 20s", timeMs = 20 * 1000, selectedTime)
+                //TimeChip(timeString = "TEST 20s", timeMs = 20 * 1000, selectedTime)
                 TimeChip(timeString = "1 hour", timeMs = 1 * 1000 * 60 * 60, selectedTime)
                 TimeChip(timeString = "2 hours", timeMs = 2 * 1000 * 60 * 60, selectedTime)
                 TimeChip(timeString = "4 hours", timeMs = 4 * 1000 * 60 * 60, selectedTime)

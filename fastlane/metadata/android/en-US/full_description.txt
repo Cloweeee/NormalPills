@@ -1,0 +1,6 @@
+An Android app used to keep track of your ADHD medication.
+    It notifies the user whenever their dose runs out, and shows a timer of their current dose.
+    The app also features:
+    * Material You design, in-app and icon
+    * Timer that doesn't get discarded upon killing the app
+    * Cosmetic 'fun' settings such as confetti
