@@ -9,7 +9,7 @@ const val NOTIFICATIONS = "confetti"
 private val BooleanPreferenceDefaults =
     mapOf(
         CREATURES to false,
-        CONFETTI to true,
+        CONFETTI to false,
         NOTIFICATIONS to false
     )
 
