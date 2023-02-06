@@ -7,17 +7,13 @@ android {
     namespace 'com.danana.normalpills'
     compileSdkVersion 33
 
-    def versionMajor = 1
-    def versionMinor = 0
-    def versionPatch = 2
-
     defaultConfig {
         applicationId "com.danana.normalpills"
         minSdk 24
         targetSdk 33
         compileSdkVersion 33
-        versionCode versionMajor * 10000 + versionMinor * 100 + versionPatch * 1
-        versionName "${versionMajor}.${versionMinor}.${versionPatch}-alpha"
+        versionCode 10002
+        versionName "1.0.2-alpha"
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
