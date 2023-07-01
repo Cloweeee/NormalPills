@@ -2,36 +2,37 @@
 
 package com.danana.normalpills
 
-import com.danana.normalpills.R
 import android.Manifest
+import android.app.AlarmManager
 import android.app.NotificationChannel
 import android.app.NotificationManager
+import android.app.PendingIntent
+import android.content.BroadcastReceiver
 import android.content.Context
+import android.content.Intent
+import android.icu.text.DateFormat
 import android.icu.text.SimpleDateFormat
 import android.os.Build
 import android.os.Bundle
 import android.os.CountDownTimer
+import android.os.SystemClock
 import android.text.format.DateUtils
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.animation.*
 import androidx.compose.animation.core.tween
-import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.Image
-import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.*
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.material.icons.rounded.Cancel
 import androidx.compose.material.icons.rounded.CheckCircle
 import androidx.compose.material.icons.rounded.Error
-import androidx.compose.material.icons.rounded.Warning
 import androidx.compose.material3.*
 import androidx.compose.material3.CardDefaults.elevatedCardElevation
-import androidx.compose.material3.CardElevation
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -39,9 +40,9 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.layout.VerticalAlignmentLine
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -49,32 +50,37 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.constraintlayout.compose.ConstraintLayout
 import androidx.core.app.NotificationCompat
-import androidx.core.app.NotificationManagerCompat
 import androidx.navigation.NavController
-import com.alorma.compose.settings.ui.SettingsSwitch
 import com.danana.normalpills.ui.theme.NormalPillsTheme
-import com.google.accompanist.navigation.animation.AnimatedComposeNavigator
 import com.google.accompanist.navigation.animation.AnimatedNavHost
 import com.google.accompanist.navigation.animation.composable
 import com.google.accompanist.navigation.animation.rememberAnimatedNavController
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.rememberPermissionState
-import com.notificationman.library.NotificationMan
-import com.notificationman.library.config.NotificationManChannelConfig
-import com.notificationman.library.model.NotificationImportanceLevel
-import com.notificationman.library.model.NotificationTypes
+import com.google.gson.*
 import com.tencent.mmkv.MMKV
 import nl.dionsegijn.konfetti.compose.KonfettiView
 import nl.dionsegijn.konfetti.core.*
 import nl.dionsegijn.konfetti.core.emitter.Emitter
 import org.json.JSONArray
 import org.json.JSONObject
+import java.time.LocalDate
+import java.time.LocalDateTime
+import java.time.ZoneId
+import java.time.ZonedDateTime
+import java.time.format.DateTimeFormatter
+import java.time.format.FormatStyle
 import java.util.*
 import java.util.concurrent.TimeUnit
 
 @OptIn(ExperimentalMaterial3Api::class)
 class MainActivity : ComponentActivity() {
     val sdf = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault())
+
+    class CustomObject (
+        val date: String,
+        val duration: Long
+    )
 
     // Retrieve array with recent pills
     private fun getDates(): JSONArray {
@@ -103,16 +109,64 @@ class MainActivity : ComponentActivity() {
             }
         }
 
+        fun scheduleAlarm(
+            title: String?,
+            message: String?,
+            length: Long
+        ) {
+            val alarmMgr = applicationContext.getSystemService(Context.ALARM_SERVICE) as AlarmManager
+            val alarmIntent =
+                Intent(applicationContext, NotificationBroadcastReceiver::class.java).let { intent ->
+                    intent.putExtra("NOTIFICATION_TITLE", title)
+                    intent.putExtra("NOTIFICATION_MESSAGE", message)
+                    PendingIntent.getBroadcast(applicationContext, 0, intent, 0)
+                }
+
+            alarmMgr.set(AlarmManager.ELAPSED_REALTIME_WAKEUP, SystemClock.elapsedRealtime() + length, alarmIntent)
+        }
+
         if(notifBool && Preferences.notificationsEnabled()) {
-            NotificationMan
-                .Builder(this@MainActivity, "com.danana.normalpills.MainActivity")
-                .setTitle(getString(R.string.notif_title))
-                .setDescription("dose was taken on ${SimpleDateFormat("HH:mm:ss").format(lastDate.value)}.")
-                .setTimeInterval(timeToUse/1000)
-                //.setNotificationChannelConfig(NotificationManChannelConfig("test", "test", importanceLevel = NotificationImportanceLevel.DEFAULT, true))
-                .fire()
+            scheduleAlarm("Your dose is no longer in effect!", "Your dose was taken on ${SimpleDateFormat("HH:mm:ss").format(lastDate.value)}.", timeToUse)
         }
         countDownTimer.start()
+    }
+
+    @Composable
+    fun HistoryItem(formattedDate: String, time: String, formattedDuration: String) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(8.dp, 20.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Column(
+                    modifier = Modifier
+                        .weight(1f)
+                        .padding(start = 12.dp)
+                ) {
+                    Row {
+                        Text(
+                            text = formattedDate + "   ",
+                            maxLines = 1,
+                            style = MaterialTheme.typography.titleMedium,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                        Text(
+                            text = time,
+                            maxLines = 1,
+                            style = MaterialTheme.typography.titleMedium.merge(fontWeight = MaterialTheme.typography.titleSmall.fontWeight),
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    Text(
+                        text = formattedDuration,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        style = MaterialTheme.typography.bodyMedium,
+                    )
+                }
+            }
+        Divider()
     }
 
     // Main text display
@@ -122,8 +176,8 @@ class MainActivity : ComponentActivity() {
         val text = remember { mutableStateOf("") }
         val style = remember { mutableStateOf(TextStyle()) }
         if (!running.value) {
-            text.value = "Last rittie was ${dateString.value}" // TODO: Add setting to disable 'fun' stuff
-            style.value = MaterialTheme.typography.titleLarge.plus(TextStyle(fontSize = 18.sp))
+            text.value = "Last dose was taken ${dateString.value}"
+            style.value = MaterialTheme.typography.titleLarge.plus(TextStyle(fontSize = 15.sp))
         } else {
             text.value = dateString.value
             style.value = MaterialTheme.typography.titleLarge
@@ -185,7 +239,7 @@ class MainActivity : ComponentActivity() {
 
         val sharedPref = this.getPreferences(MODE_PRIVATE)
 
-        val notificationManager: NotificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        val notificationManager: NotificationManager = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
 
 
         val showKonfetti = remember { mutableStateOf(false) }
@@ -229,159 +283,197 @@ class MainActivity : ComponentActivity() {
                 dateString.value = "never"
             } else dateString.value = DateUtils.getRelativeTimeSpanString(lastDate.value).toString() // Otherwise, display time since last intake
         }
-        ConstraintLayout(modifier = Modifier.fillMaxSize()) {
-            val (row, card, settings) = createRefs()
 
-            IconButton(
-                onClick = { navController.navigate("settings") },
-                modifier = Modifier
-                    .constrainAs(ref = settings) {
-                        top.linkTo(parent.top)
-                    }
-                    .padding(all = 12.dp)
-            ) {
-                Icon(Icons.Filled.Settings, "Settings")
-            }
-
-            Row(
-                modifier = Modifier // Row containing selectable chips
-                    .fillMaxWidth()
-                    .padding(all = 24.dp)
-                    .constrainAs(ref = row) {
-                        bottom.linkTo(card.top) // Put the Row of chips right above the main Card
-                    }
-                    .horizontalScroll(rememberScrollState()),
-            ) {
-                // All selectable timer-lengths
-                //TimeChip(timeString = "TEST 20s", timeMs = 20 * 1000, selectedTime)
-                TimeChip(timeString = "1 hour", timeMs = 1 * 1000 * 60 * 60, selectedTime)
-                TimeChip(timeString = "2 hours", timeMs = 2 * 1000 * 60 * 60, selectedTime)
-                TimeChip(timeString = "4 hours", timeMs = 4 * 1000 * 60 * 60, selectedTime)
-                TimeChip(timeString = "8 hours", timeMs = 8 * 1000 * 60 * 60, selectedTime)
-                //TODO: Add a custom length option in the future.
-            }
-            ElevatedCard( // Create the main card!
-                Modifier
-                    .size(width = 300.dp, height = 450.dp)
-                    .fillMaxSize()
-                    .constrainAs(ref = card) {
-                        centerTo(parent)
-                    },
-                elevation = elevatedCardElevation(1.dp)
-            ) {
-                Column(
+        val scaffoldState = rememberBottomSheetScaffoldState()
+        BottomSheetScaffold(
+            scaffoldState = scaffoldState,
+            sheetPeekHeight = 96.dp,
+            sheetContent = {
+                Row(
                     modifier = Modifier
-                        .fillMaxSize()
-                        .padding(all = 16.dp),
-                    verticalArrangement = Arrangement.SpaceEvenly
+                        .fillMaxWidth()
+                        .wrapContentHeight(),
+                    horizontalArrangement = Arrangement.Center
                 ) {
-                    Box(modifier = Modifier // Box containing (optional) image, timer display and a line
-                        .size(200.dp)
-                        .align(Alignment.CenterHorizontally)
-                        .fillMaxSize()) {
-                        val color = MaterialTheme.colorScheme.primary
-                        val lineColor = MaterialTheme.colorScheme.secondary
-                        val circleColor = MaterialTheme.colorScheme.secondaryContainer
+                    Text(text="History", style=MaterialTheme.typography.headlineMedium)
+                }
+                LazyColumn(
+                    Modifier
+                        .fillMaxWidth()
+                        .fillMaxHeight(),
+                ) {
 
-                        Canvas(modifier = Modifier.fillMaxSize()) {
-                            drawCircle(
-                                color = circleColor
-                            )
-                            drawArc(
-                                color = lineColor,
-                                140f,
-                                260f,
-                                false,
-                                style = Stroke(
-                                    2.dp.toPx(),
-                                    cap = StrokeCap.Round
+                    data class Occurance(
+                        val date: String,
+                        val selectedTime: Long,
+                    )
+
+                    val datesList: List<Occurance> = Gson().fromJson(dates.toString() , Array<Occurance>::class.java).toList().reversed()
+
+                    items(datesList.size) {dateIndex ->
+                        val dtf = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
+                        val dateObj = LocalDateTime.parse(datesList[dateIndex].date, dtf)
+                        val df = DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM)
+                        val tdf = DateTimeFormatter.ofPattern("HH:mm")
+                        // coding this made me wnat to kill myself
+                        HistoryItem(formattedDate = df.format(dateObj), time = tdf.format(dateObj), formattedDuration = ((datesList[dateIndex].selectedTime/3600/1000).toString() + " hours"))
+                    }
+                }
+        }) {
+            ConstraintLayout(modifier = Modifier.fillMaxSize()) {
+                val (row, card, settings) = createRefs()
+
+                IconButton(
+                    onClick = { navController.navigate("settings") },
+                    modifier = Modifier
+                        .constrainAs(ref = settings) {
+                            top.linkTo(parent.top)
+                        }
+                        .padding(all = 12.dp)
+                ) {
+                    Icon(Icons.Filled.Settings, "Settings")
+                }
+
+                Row(
+                    modifier = Modifier // Row containing selectable chips
+                        .fillMaxWidth()
+                        .padding(all = 24.dp)
+                        .constrainAs(ref = row) {
+                            bottom.linkTo(card.top) // Put the Row of chips right above the main Card
+                        }
+                        .horizontalScroll(rememberScrollState()),
+                ) {
+                    // All selectable timer-lengths
+                    //TimeChip(timeString = "TEST 20s", timeMs = 20 * 1000, selectedTime)
+                    TimeChip(timeString = "1 hour", timeMs = 1 * 1000 * 60 * 60, selectedTime)
+                    TimeChip(timeString = "2 hours", timeMs = 2 * 1000 * 60 * 60, selectedTime)
+                    TimeChip(timeString = "4 hours", timeMs = 4 * 1000 * 60 * 60, selectedTime)
+                    TimeChip(timeString = "8 hours", timeMs = 8 * 1000 * 60 * 60, selectedTime)
+                    //TODO: Add a custom length option in the future.
+                }
+                ElevatedCard( // Create the main card!
+                    Modifier
+                        .size(width = 300.dp, height = 450.dp)
+                        .fillMaxSize()
+                        .constrainAs(ref = card) {
+                            centerTo(parent)
+                        },
+                    elevation = elevatedCardElevation(1.dp)
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(all = 16.dp),
+                        verticalArrangement = Arrangement.SpaceEvenly
+                    ) {
+                        Box(modifier = Modifier // Box containing (optional) image, timer display and a line
+                            .size(200.dp)
+                            .align(Alignment.CenterHorizontally)
+                            .fillMaxSize()) {
+                            val color = MaterialTheme.colorScheme.primary
+                            val lineColor = MaterialTheme.colorScheme.secondary
+                            val circleColor = MaterialTheme.colorScheme.secondaryContainer
+
+                            Canvas(modifier = Modifier.fillMaxSize()) {
+                                drawCircle(
+                                    color = circleColor
                                 )
-                            )
-                            if (running.value) {
                                 drawArc(
-                                    color = color,
+                                    color = lineColor,
                                     140f,
-                                    sweepProgress.value * 260f,
+                                    260f,
                                     false,
                                     style = Stroke(
-                                        12.dp.toPx(),
+                                        2.dp.toPx(),
                                         cap = StrokeCap.Round
                                     )
                                 )
-                            }
-                        }
-
-                        // Only display autism creatures when it is enabled in the settings
-                        if(Preferences.creaturesEnabled()) {
-                            val image = remember { mutableStateOf(0) }
-
-                            if (running.value) image.value = R.drawable.autism_creature // If the timer is running, display autism creature!
-                            else image.value = R.drawable.adhd_creature // If the timer isn't running, display ADHD creature
-                            Image(
-                                painterResource(id = image.value),
-                                contentDescription = "",
-                                contentScale = ContentScale.Fit,
-                                modifier = (Modifier
-                                    .size(150.dp)
-                                    .align(Alignment.Center)
-                                    .fillMaxSize()
+                                if (running.value) {
+                                    drawArc(
+                                        color = color,
+                                        140f,
+                                        sweepProgress.value * 260f,
+                                        false,
+                                        style = Stroke(
+                                            12.dp.toPx(),
+                                            cap = StrokeCap.Round
                                         )
-                            )
-                        } else {
-                            // If autism creatures are disabled, display checkmarks instead
-                            val mainIcon: MutableState<ImageVector> = remember { mutableStateOf(Icons.Rounded.Cancel) }
-                            val contentDescription = remember { mutableStateOf("") }
-
-                            if(running.value) {
-                                mainIcon.value = Icons.Rounded.CheckCircle
-                                contentDescription.value = "Checkmark indicating a running timer"
-                            } else {
-                                mainIcon.value = Icons.Rounded.Cancel
-                                contentDescription.value = "Cancel icon indicating a non-running timer"
-                            }
-                            Icon(
-                                imageVector = mainIcon.value,
-                                contentDescription = "Checkmark",
-                                modifier = (Modifier
-                                    .size(150.dp)
-                                    .align(Alignment.Center)
-                                    .fillMaxSize()
-                                        )
-                            )
-                        }
-                    }
-
-
-                    Column(verticalArrangement = Arrangement.Center, /*modifier = Modifier.height(104.dp)*/) {
-                        DateText(dateString = dateString, running) // Display either time since last intake, or current timer
-                        //TODO: Add text displaying intake time
-                        Button( // Button used to input intakes
-                            modifier = Modifier.align(Alignment.CenterHorizontally),
-                            enabled = (!running.value && selectedTime.value != 0L),
-                            onClick = {
-                                lastDate.value = Date().time
-                                startTimer(true, selectedTime.value, running, dateString, sweepProgress, lastSelected, showKonfetti, lastDate)
-                                showKonfetti.value = true;
-
-                                // Write new date
-                                with(sharedPref.edit()) { // Save current time/date, as well as the time that was selected
-                                    val date = JSONObject()
-                                    date.put("date", sdf.format(Date()))
-                                    date.put("selectedTime", selectedTime.value)
-                                    dates.put(date)
-                                    putString(
-                                        getString(R.string.dates_array),
-                                        dates.toString()
                                     )
-                                    apply()
                                 }
-                            }) {
-                            Text(text = "Taking some normal pills") // Button text TODO: Create setting to disable 'fun' stuff
+                            }
+
+                            // Only display autism creatures when it is enabled in the settings
+                            if(Preferences.creaturesEnabled()) {
+                                val image = remember { mutableStateOf(0) }
+
+                                if (running.value) image.value = R.drawable.autism_creature // If the timer is running, display autism creature!
+                                else image.value = R.drawable.adhd_creature // If the timer isn't running, display ADHD creature
+                                Image(
+                                    painterResource(id = image.value),
+                                    contentDescription = "",
+                                    contentScale = ContentScale.Fit,
+                                    modifier = (Modifier
+                                        .size(150.dp)
+                                        .align(Alignment.Center)
+                                        .fillMaxSize()
+                                            )
+                                )
+                            } else {
+                                // If autism creatures are disabled, display checkmarks instead
+                                val mainIcon: MutableState<ImageVector> = remember { mutableStateOf(Icons.Rounded.Cancel) }
+                                val contentDescription = remember { mutableStateOf("") }
+
+                                if(running.value) {
+                                    mainIcon.value = Icons.Rounded.CheckCircle
+                                    contentDescription.value = "Checkmark indicating a running timer"
+                                } else {
+                                    mainIcon.value = Icons.Rounded.Cancel
+                                    contentDescription.value = "Cancel icon indicating a non-running timer"
+                                }
+                                Icon(
+                                    imageVector = mainIcon.value,
+                                    contentDescription = "Checkmark",
+                                    modifier = (Modifier
+                                        .size(150.dp)
+                                        .align(Alignment.Center)
+                                        .fillMaxSize()
+                                            )
+                                )
+                            }
                         }
-                        if(!notificationManager.areNotificationsEnabled()) {
-                            Row(modifier = Modifier.padding(top = 8.dp), verticalAlignment = Alignment.CenterVertically) {
-                                Icon(Icons.Rounded.Error, "Warning!", modifier = Modifier.align(Alignment.CenterVertically))
-                                Text("Notifications aren't enabled, consider turning them on in the settings menu.", style = MaterialTheme.typography.bodySmall, textAlign = TextAlign.Center, overflow = TextOverflow.Visible)
+
+
+                        Column(verticalArrangement = Arrangement.Center /*modifier = Modifier.height(104.dp)*/) {
+                            DateText(dateString = dateString, running) // Display either time since last intake, or current timer
+                            //TODO: Add text displaying intake time
+                            Button( // Button used to input intakes
+                                modifier = Modifier.align(Alignment.CenterHorizontally),
+                                enabled = (!running.value && selectedTime.value != 0L),
+                                onClick = {
+                                    lastDate.value = Date().time
+                                    startTimer(true, selectedTime.value, running, dateString, sweepProgress, lastSelected, showKonfetti, lastDate)
+                                    showKonfetti.value = true;
+
+                                    // Write new date
+                                    with(sharedPref.edit()) { // Save current time/date, as well as the time that was selected
+                                        val date = JSONObject()
+                                        date.put("date", sdf.format(Date()))
+                                        date.put("selectedTime", selectedTime.value)
+                                        dates.put(date)
+                                        putString(
+                                            getString(R.string.dates_array),
+                                            dates.toString()
+                                        )
+                                        apply()
+                                    }
+                                }) {
+                                Text(text = "Taking some normal pills") // Button text TODO: Create setting to disable 'fun' stuff
+                            }
+                            if(!notificationManager.areNotificationsEnabled()) {
+                                Row(modifier = Modifier.padding(top = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+                                    Icon(Icons.Rounded.Error, "Warning!", modifier = Modifier.align(Alignment.CenterVertically))
+                                    Text("Notifications aren't enabled, consider turning them on in the settings menu.", style = MaterialTheme.typography.bodySmall, textAlign = TextAlign.Center, overflow = TextOverflow.Visible)
+                                }
                             }
                         }
                     }
@@ -552,6 +644,7 @@ class MainActivity : ComponentActivity() {
                     ) {
                         composable(
                             route = "home",
+                            enterTransition =  { fadeIn(animationSpec = tween(220, delayMillis = 90)) + scaleIn(initialScale = 0.92f, animationSpec = tween(220, delayMillis = 90)) },
                             exitTransition = { fadeOut(animationSpec = tween(90)) }
                         ) {
                             HomeScreen(navController)
