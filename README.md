@@ -11,12 +11,12 @@ This is the first time I have developed an Android app, so the code is messy and
 - See time since last intake (if there is no current timer)
 - Timers will continue, even if the app was closed
 - Get notified when your timer is done
+- History tab
 - Confetti!
 - [Material Design 3](https://m3.material.io/) style UI, with dynamic color theme
 ### Incoming
 - Display time since current intake, when timer is running
 - Setting for disabling fun text
-- History tab showing previous intakes
 - Custom duration
 - ...
 
