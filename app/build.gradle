@@ -13,7 +13,7 @@ android {
         targetSdk 33
         compileSdkVersion 33
         versionCode 10100
-        versionName "1.1.0-alpha"
+        versionName "1.1.1-alpha"
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
@@ -26,7 +26,7 @@ android {
             enable true
             reset()
             include 'armeabi-v7a', 'arm64-v8a', 'x86', 'x86_64'
-            universalApk false
+            universalApk true
         }
     }
 
@@ -34,11 +34,15 @@ android {
 
     applicationVariants.all { variant ->
         variant.outputs.all { output ->
+            def suffix = "universal"
             def baseAbiVersionCode = abiCodes.get(output.getFilter(com.android.build.OutputFile.ABI))
             if(baseAbiVersionCode !== null) {
                 output.versionCodeOverride = variant.versionCode * 10 + baseAbiVersionCode
+                suffix = output.getFilter(com.android.build.OutputFile.ABI)
+            } else {
+                output.versionCodeOverride = variant.versionCode * 10
             }
-            outputFileName = "app-${variant.name}-${output.versionCode}.apk"
+            outputFileName = "app-${variant.name}-${output.versionCode}-${suffix}.apk"
         }
     }
 
@@ -102,4 +106,5 @@ dependencies {
     implementation(platform("org.jetbrains.kotlin:kotlin-bom:1.8.0"))
     implementation 'com.google.code.gson:gson:2.10.1'
     implementation "org.jetbrains.kotlin:kotlin-reflect:1.8.21"
+    implementation 'androidx.work:work-runtime-ktx:2.7.0'
 }

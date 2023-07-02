@@ -20,8 +20,8 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.ADHDTracker"
         tools:targetApi="31" >
-        <receiver android:name="com.danana.normalpills.NotificationBroadcastReceiver" android:exported="false">
-            <intent-filter> <action android:name="YourAction" android:exported="false" /></intent-filter>
+        <receiver android:name="com.danana.normalpills.NotificationBroadcastReceiver" android:exported="true">
+            <intent-filter> <action android:name="YourAction" android:exported="true" /></intent-filter>
         </receiver>
         <activity
             android:name="com.danana.normalpills.MainActivity"
@@ -31,7 +31,6 @@
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
-
         </activity>
     </application>
 

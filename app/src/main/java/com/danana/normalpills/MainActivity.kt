@@ -7,6 +7,8 @@ import android.app.AlarmManager
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
+import android.app.PendingIntent.FLAG_IMMUTABLE
+import android.app.PendingIntent.FLAG_UPDATE_CURRENT
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
@@ -114,12 +116,16 @@ class MainActivity : ComponentActivity() {
             message: String?,
             length: Long
         ) {
+            val flags = when {
+                Build.VERSION.SDK_INT >= Build.VERSION_CODES.M -> FLAG_UPDATE_CURRENT or FLAG_IMMUTABLE
+                else -> FLAG_UPDATE_CURRENT
+            }
             val alarmMgr = applicationContext.getSystemService(Context.ALARM_SERVICE) as AlarmManager
             val alarmIntent =
                 Intent(applicationContext, NotificationBroadcastReceiver::class.java).let { intent ->
                     intent.putExtra("NOTIFICATION_TITLE", title)
                     intent.putExtra("NOTIFICATION_MESSAGE", message)
-                    PendingIntent.getBroadcast(applicationContext, 0, intent, 0)
+                    PendingIntent.getBroadcast(applicationContext, 0, intent, flags)
                 }
 
             alarmMgr.set(AlarmManager.ELAPSED_REALTIME_WAKEUP, SystemClock.elapsedRealtime() + length, alarmIntent)
