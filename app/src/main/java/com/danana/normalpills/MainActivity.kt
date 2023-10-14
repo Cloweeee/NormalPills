@@ -14,10 +14,7 @@ import android.content.Context
 import android.content.Intent
 import android.icu.text.DateFormat
 import android.icu.text.SimpleDateFormat
-import android.os.Build
-import android.os.Bundle
-import android.os.CountDownTimer
-import android.os.SystemClock
+import android.os.*
 import android.text.format.DateUtils
 import android.widget.Toast
 import androidx.activity.ComponentActivity
@@ -74,6 +71,7 @@ import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
 import java.util.*
 import java.util.concurrent.TimeUnit
+import java.util.logging.Handler
 
 @OptIn(ExperimentalMaterial3Api::class)
 class MainActivity : ComponentActivity() {
@@ -125,7 +123,7 @@ class MainActivity : ComponentActivity() {
                 Intent(applicationContext, NotificationBroadcastReceiver::class.java).let { intent ->
                     intent.putExtra("NOTIFICATION_TITLE", title)
                     intent.putExtra("NOTIFICATION_MESSAGE", message)
-                    PendingIntent.getBroadcast(applicationContext, 0, intent, flags)
+                    PendingIntent.getBroadcast(applicationContext, 1, intent, flags)
                 }
 
             alarmMgr.set(AlarmManager.ELAPSED_REALTIME_WAKEUP, SystemClock.elapsedRealtime() + length, alarmIntent)
@@ -182,7 +180,7 @@ class MainActivity : ComponentActivity() {
         val text = remember { mutableStateOf("") }
         val style = remember { mutableStateOf(TextStyle()) }
         if (!running.value) {
-            text.value = "Last dose was taken ${dateString.value}"
+            text.value = "Last dose ran out ${dateString.value}"
             style.value = MaterialTheme.typography.titleLarge.plus(TextStyle(fontSize = 15.sp))
         } else {
             text.value = dateString.value
@@ -247,19 +245,7 @@ class MainActivity : ComponentActivity() {
 
         val notificationManager: NotificationManager = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
 
-
         val showKonfetti = remember { mutableStateOf(false) }
-
-        if(showKonfetti.value && Preferences.confettiEnabled()) {
-            KonfettiView(parties = listOf(
-                Party(
-                    emitter = Emitter(1, TimeUnit.SECONDS).perSecond(500),
-                    speed = 50f,
-                    angle = 0
-                )
-            ),
-            modifier = Modifier.fillMaxSize())
-        }
 
         val dateString = remember { mutableStateOf("") } // String used in the main text box
 
@@ -278,6 +264,17 @@ class MainActivity : ComponentActivity() {
             lastSelected.value = recentDateObject.get("selectedTime").toString().toLong()
         }
 
+        val currentTimeObj = remember { mutableStateOf((LocalDateTime.now().atZone(ZoneId.systemDefault()).toInstant().toEpochMilli()) - lastSelected.value) }
+
+        val mainHandler = Handler(Looper.getMainLooper())
+
+        mainHandler.post(object : Runnable {
+            override fun run() {
+                currentTimeObj.value = (LocalDateTime.now().atZone(ZoneId.systemDefault()).toInstant().toEpochMilli()) - lastSelected.value;
+                mainHandler.postDelayed(this, 1000)
+            }
+        })
+
         val sweepProgress: MutableState<Float> = remember { mutableStateOf(1f) } // Float remembering the current completion of the timer
 
         if(((Date().time.minus(lastDate.value) ) < lastSelected.value) && !running.value) {
@@ -287,7 +284,7 @@ class MainActivity : ComponentActivity() {
         if (!running.value) { // If the timer isn't running, do the following
             if(lastDate.value == 0L) { // 0L is the default value for lastDate, if this is the case, the user has never recorded an intake
                 dateString.value = "never"
-            } else dateString.value = DateUtils.getRelativeTimeSpanString(lastDate.value).toString() // Otherwise, display time since last intake
+            } else dateString.value = DateUtils.getRelativeTimeSpanString(lastDate.value, currentTimeObj.value, 0L, DateUtils.FORMAT_ABBREV_ALL).toString() // Otherwise, display time since last intake
         }
 
         val scaffoldState = rememberBottomSheetScaffoldState()
@@ -327,6 +324,17 @@ class MainActivity : ComponentActivity() {
                 }
         }) {
             ConstraintLayout(modifier = Modifier.fillMaxSize()) {
+                if(showKonfetti.value && Preferences.confettiEnabled()) {
+                    KonfettiView(parties = listOf(
+                        Party(
+                            emitter = Emitter(1, TimeUnit.SECONDS).perSecond(500),
+                            speed = 50f,
+                            angle = 0
+                        )
+                    ),
+                        modifier = Modifier.fillMaxSize())
+                }
+
                 val (row, card, settings) = createRefs()
 
                 IconButton(
@@ -505,7 +513,7 @@ class MainActivity : ComponentActivity() {
                         }
                     }
                 )
-                SettingItem(title = "General", description = "Cosmetics inside the app such as confetti", icon = Icons.Filled.Settings) {
+                SettingItem(title = "General", description = "General settings", icon = Icons.Filled.Settings) {
                     navController.navigate("generalsettings")
                 }
                 SettingItem(title = "Fun", description = "Cosmetics inside the app such as confetti", icon = Icons.Filled.Celebration) {
